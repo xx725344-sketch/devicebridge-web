@@ -29,7 +29,7 @@ export class Assembler{
 }
 export class GitHubMailbox{
   constructor(settings,{fetcher=globalThis.fetch,base='https://api.github.com',now=()=>Date.now()}={}){
-    this.settings=validateSettings(settings);this.fetcher=fetcher;this.base=base;this.now=now;
+    this.settings=validateSettings(settings);this.fetcher=fetcher.bind(globalThis);this.base=base;this.now=now;
     this.path='/repos/'+settings.owner+'/'+settings.repo;this.since=new Date(now()-15000).toISOString();this.lastId=0;this.blockedUntil=0;this.writes=[];this.lastWrite=0;
   }
   async api(path,options={}){

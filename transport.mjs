@@ -1,5 +1,5 @@
-import {createKeys,seal,unseal} from './crypto.mjs';
-import {GitHubMailbox,Assembler} from './mailbox.mjs';
+import {createKeys,seal,unseal} from './crypto.mjs?v=20261103-safari1';
+import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261103-safari1';
 export class GitHubClient{
   constructor(settings,{mailbox,pollMs=6000,onDisconnect=()=>{}}={}){this.settings=settings;this.mailbox=mailbox||new GitHubMailbox(settings);this.pollMs=pollMs;this.onDisconnect=onDisconnect;this.assembler=new Assembler();this.pending=new Map();this.jobs=new Map();this.closed=false;this.lastResponse=Date.now();}
   async init(){this.keys=await createKeys(this.settings.masterKey);this.clientId=this.settings.clientId||crypto.randomUUID();await this.mailbox.check();void this.poll();return this;}

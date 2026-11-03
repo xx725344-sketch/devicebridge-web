@@ -4,8 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data: blob:; media-src 'self' blob:; base-uri 'none'; form-action 'self'"><meta name="theme-color" content="#142d36">
   <title>设备桥 · 把电脑的能力带在身边</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=20261103-editor1">
-  <script src="./editor.js?v=20261103-editor1" defer></script><script type="module" src="./browser.mjs?v=20261103-editor1"></script>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=20261103-send1">
+  <script src="./editor.js?v=20261103-send1" defer></script><script type="module" src="./browser.mjs?v=20261103-send1"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -14,16 +14,16 @@
     <div class="nav-item active"><span>⌘</span> C 语言工作台 <b>01</b></div>
     <div class="side-note">在平板上思考，<br>让电脑来运行。</div>
     <div class="device-card"><div class="device-icon">▣</div><div><strong id="deviceName">等待连接</strong><span id="connectionState">等待粘贴配对资料</span></div><i id="connectionDot"></i></div>
-    <div class="side-bottom"><span>GitHub 编辑器版 · v0.7</span><button id="logout" class="text-button" hidden>断开连接 ↗</button></div>
+    <div class="side-bottom"><span>GitHub 文件传送版 · v0.8</span><button id="logout" class="text-button" hidden>断开连接 ↗</button></div>
   </aside>
   <main>
     <header><div class="breadcrumb">我的设备 <span>/</span> C 语言工作台</div><button id="remoteExecution" class="secondary" type="button" hidden>开启电脑执行</button><span id="remoteNotice" role="status"></span><span id="networkBadge" class="local-badge">● 设备连接</span></header>
     <section class="intro"><div><div class="eyebrow">A LITTLE CODE. A BIGGER WORLD.</div><h1>你的代码，随处运行<span>。</span></h1><p>用手机或 iPad 写 C，让自己的电脑完成编译和运行。</p></div><div class="intro-mark" aria-hidden="true">{ <span>C</span> }</div></section>
     <section class="workspace" aria-label="C 代码工作台">
       <div class="editor-panel panel">
-        <div class="panel-head"><div class="file-tab"><span class="c-icon">C</span> <span id="fileName">main.c</span> <span id="saved" class="muted">· 正在读取草稿</span></div><button id="download" class="text-button">下载代码 ↓</button></div>
+        <div class="panel-head"><div class="file-tab"><span class="c-icon">C</span> <span id="fileName">main.c</span> <span id="saved" class="muted">· 正在读取草稿</span></div><button id="sendToComputer" class="text-button" disabled>保存到电脑 ↑</button><button id="download" class="text-button">下载代码 ↓</button></div>
         <div class="library-toolbar"><label for="documents">我的代码库</label><select id="documents" aria-label="选择已保存的练习"></select><button id="newCode" class="secondary" type="button">＋ 新建代码</button><button id="renameCode" class="text-button" type="button">重命名</button><button id="importCode" class="text-button" type="button">导入 .c 文件</button><input id="codeFile" type="file" accept=".c,text/plain" hidden><button id="connectAgain" class="text-button" type="button">连接电脑</button><p>每份练习独立保存到当前浏览器。可从空白开始写，使用标准头文件；运行时提交当前这一份。重要代码请下载到“文件”备份。</p></div>
-        <div class="editor-toolbar"><label for="sample">开始一个小练习</label><select id="sample"><option value="">选择示例…</option><option value="hello">你好，iPad</option><option value="function">函数 · 两数相加</option><option value="input">输入 · 计算平方</option><option value="recursion">递归 · 阶乘</option></select><span>C11</span></div>
+        <p id="sendStatus" class="send-status" role="status">发送当前代码到电脑的 D:\chat\设备桥接收代码，每次保留一份新版本。</p><div class="editor-toolbar"><label for="sample">开始一个小练习</label><select id="sample"><option value="">选择示例…</option><option value="hello">你好，iPad</option><option value="function">函数 · 两数相加</option><option value="input">输入 · 计算平方</option><option value="recursion">递归 · 阶乘</option></select><span>C11</span></div>
         <div class="library-toolbar"><label for="headerSelect">标准头文件</label><select id="headerSelect"><option value="assert.h">assert.h</option><option value="complex.h">complex.h</option><option value="ctype.h">ctype.h</option><option value="errno.h">errno.h</option><option value="fenv.h">fenv.h</option><option value="float.h">float.h</option><option value="inttypes.h">inttypes.h</option><option value="iso646.h">iso646.h</option><option value="limits.h">limits.h</option><option value="locale.h">locale.h</option><option value="math.h">math.h</option><option value="setjmp.h">setjmp.h</option><option value="signal.h">signal.h</option><option value="stdalign.h">stdalign.h</option><option value="stdarg.h">stdarg.h</option><option value="stdatomic.h">stdatomic.h</option><option value="stdbool.h">stdbool.h</option><option value="stddef.h">stddef.h</option><option value="stdint.h">stdint.h</option><option value="stdio.h">stdio.h</option><option value="stdlib.h">stdlib.h</option><option value="stdnoreturn.h">stdnoreturn.h</option><option value="string.h">string.h</option><option value="tgmath.h">tgmath.h</option><option value="threads.h">threads.h</option><option value="time.h">time.h</option><option value="uchar.h">uchar.h</option><option value="wchar.h">wchar.h</option><option value="wctype.h">wctype.h</option></select><button id="insertHeader" class="secondary" type="button">插入 #include</button><details><summary>29 个 C11 标准头文件已通过编译检查</summary><p>常用：stdio.h 输入输出；stdlib.h 内存与转换；string.h 字符串；math.h 数学；ctype.h 字符；time.h 时间；stdbool.h 布尔；stdint.h 定宽整数。包含头文件后可直接调用相应函数。图形库等第三方库需要单独安装，当前不支持自行安装。</p></details></div><div class="code-wrap"><pre id="lineNumbers" aria-hidden="true">1</pre><pre id="codeHighlight" class="code-highlight" aria-hidden="true"></pre><textarea id="code" aria-label="C 语言代码编辑器" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" wrap="off"></textarea></div>
         <div class="editor-footer"><span id="lineInfo">第 1 行，第 1 列</span><span>UTF-8 <i>·</i> 4 空格缩进</span></div>
       </div>

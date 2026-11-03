@@ -29,6 +29,7 @@ function setConnected(value) {
   buttons();
 }
 function buttons() {
+  $('sendToComputer').disabled = !connected || globalThis.bridgeLinkRecovering === true || globalThis.bridgeExecutionEnabled === false || sendingFile;
   $('run').disabled = !connected || globalThis.bridgeExecutionEnabled === false || globalThis.bridgeLinkRecovering === true || !!activeId || submitting;
   $('stop').disabled = !connected || !activeId;
   if(globalThis.bridgeLinkRecovering){$('connectionState').textContent = globalThis.bridgeLinkMessage || '正在恢复连接…';$('connectionDot').classList.toggle('online',false);}
@@ -48,6 +49,7 @@ function lines() {
   $('lineNumbers').scrollTop = $('code').scrollTop;
 }
 let library;
+let sendingFile = false;
 try {
   const stored = JSON.parse(localStorage.getItem('bridge-library-v1') || 'null');
   if (stored && Array.isArray(stored.items) && stored.items.length && stored.items.every(x => typeof x.id === 'string' && typeof x.name === 'string' && typeof x.source === 'string' && typeof x.input === 'string') && stored.items.some(x => x.id === stored.active)) library = stored;
@@ -141,6 +143,18 @@ $('download').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([$('code').value], { type: 'text/plain;charset=utf-8' }));
   const link = document.createElement('a'); link.href = url; link.download = library.items.find(x => x.id === library.active).name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
+});
+$('sendToComputer').addEventListener('click',async()=>{
+  if(sendingFile||!connected)return;
+  const item=library.items.find(x=>x.id===library.active);
+  const name=item.name,source=$('code').value;
+  if(!source.trim())return toast('先写代码，再发送到电脑。');
+  sendingFile=true;buttons();$('sendStatus').textContent='正在发送，请等待电脑确认…';
+  try{
+    const result=await api('/api/files',{method:'POST',body:JSON.stringify({name,source})});
+    $('sendStatus').textContent='电脑已保存：'+result.path;toast('代码已保存到电脑。');
+  }catch(error){$('sendStatus').textContent=error.message+' 如回应超时，请先检查电脑接收文件夹，避免重复发送。';}
+  finally{sendingFile=false;buttons();}
 });
 function render(job) {
   $('jobStatus').textContent = labels[job.status] || job.status;

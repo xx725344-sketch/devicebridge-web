@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'self'"><meta name="theme-color" content="#142d36">
+  <meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data: blob:; base-uri 'none'; form-action 'self'"><meta name="theme-color" content="#142d36">
   <title>设备桥 · 把电脑的能力带在身边</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
   <script type="module" src="./browser.mjs"></script>
@@ -34,7 +34,7 @@
     <section class="lower-grid"><div class="panel history-panel"><div class="panel-head"><strong>最近的任务</strong><span class="muted">本次电脑服务 · 最多 20 条</span></div><div id="history" class="history"><p class="muted">连接后，运行记录会出现在这里。</p></div></div><div class="tip-card"><span class="tip-label">一点小提示</span><h2>从函数开始，连接更大的世界。</h2><p>试试把示例中的 add 函数改成求最大值。你在平板上修改的每一行，都会交给自己的电脑运行。</p><details><summary>连接与使用说明</summary><p>电脑双击“启动GitHub实验版.cmd”，验证专用私有仓库并允许本次执行。粘贴配对资料后，首次连接还需电脑确认。等待回应可能需要十几秒，避免重复点击。</p><p>电脑须保持开机且服务窗口打开。输入数据在运行前一次性提交；当前版本支持文字程序，暂不支持运行中交互输入和图形窗口。</p><p>GitHub 保存任务与结果的密文及访问记录。配对资料含访问令牌，请勿分享。电脑运行 C 使用当前账户权限，没有系统沙箱；仅运行自己的可信代码。</p></details></div></section>
     <footer><span>设备各有所长，让它们一起工作。</span><span id="compilerInfo">等待电脑编译器信息</span></footer>
   </main>
-  <div id="pairOverlay" class="overlay"><form id="pairForm" class="pair-card"><div class="pair-logo"><img src="./favicon.svg" alt=""></div><div class="eyebrow">LET YOUR DEVICES WORK TOGETHER</div><h2>连接你的电脑</h2><p>在电脑管理页复制完整配对资料，<br>输入后，就可以在这台设备上写 C 了。</p><label for="pairCode">电脑配对资料</label><input id="pairCode" type="password" maxlength="6000" autocomplete="off" placeholder="粘贴电脑复制的完整配对资料" required><button id="pairButton" class="primary" type="submit">连接电脑 →</button><p id="pairError" class="error" role="alert"></p><div class="pair-foot">仅连接自己的设备 · 仅低频使用 · 回应与停止有延迟 · 电脑保持开机</div></form></div>
+  <div id="pairOverlay" class="overlay"><form id="pairForm" class="pair-card"><div class="pair-logo"><img src="./favicon.svg" alt=""></div><div class="eyebrow">LET YOUR DEVICES WORK TOGETHER</div><h2>连接你的电脑</h2><p>在电脑管理页复制完整配对资料，<br>输入后，就可以在这台设备上写 C 了。</p><label for="pairCode">电脑配对资料</label><input id="pairCode" type="password" maxlength="6000" autocomplete="off" placeholder="粘贴电脑复制的完整配对资料" required><button id="scanPair" type="button" class="secondary">拍摄电脑二维码</button><input id="pairPhoto" type="file" accept="image/*" capture="environment" hidden><button id="pairButton" class="primary" type="submit">连接电脑 →</button><p id="pairError" class="error" role="alert"></p><div class="pair-foot">仅连接自己的设备 · 仅低频使用 · 回应与停止有延迟 · 电脑保持开机</div></form></div>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

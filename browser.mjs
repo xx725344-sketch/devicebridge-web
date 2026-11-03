@@ -1,4 +1,5 @@
 import {GitHubClient} from './transport.mjs';
+import {readPairPhoto} from './scan-qr.mjs';
 let current;
 function disconnected(message){globalThis.dispatchEvent(new CustomEvent('bridge-disconnected',{detail:message}));}
 globalThis.bridgeTransport=async(url,options={})=>{
@@ -15,3 +16,12 @@ globalThis.bridgeTransport=async(url,options={})=>{
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权|电脑已重启/.test(error.message)){current.close();disconnected(error.message);}throw error;}
 };
 await import('./app.js');
+const photo=document.getElementById('pairPhoto'),scan=document.getElementById('scanPair');
+scan.addEventListener('click',()=>photo.click());
+photo.addEventListener('change',async()=>{
+  const file=photo.files?.[0];if(!file)return;
+  scan.disabled=true;const error=document.getElementById('pairError');error.textContent='正在本机读取二维码照片…';
+  try{document.getElementById('pairCode').value=await readPairPhoto(file);error.textContent='读取成功，请点击“连接电脑”。照片没有上传。';}
+  catch(e){error.textContent=e.message;}
+  finally{photo.value='';scan.disabled=false;}
+});

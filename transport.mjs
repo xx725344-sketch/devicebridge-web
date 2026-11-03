@@ -1,5 +1,5 @@
-import {createKeys,seal,unseal} from './crypto.mjs?v=20261103-remote1';
-import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261103-remote1';
+import {createKeys,seal,unseal} from './crypto.mjs?v=20261103-hardened1';
+import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261103-hardened1';
 export class GitHubClient{
   constructor(settings,{mailbox,pollMs=6000,onDisconnect=()=>{},onState=()=>{}}={}){this.settings=settings;this.mailbox=mailbox||new GitHubMailbox(settings);this.pollMs=pollMs;this.onDisconnect=onDisconnect;this.onState=onState;this.assembler=new Assembler();this.pending=new Map();this.jobs=new Map();this.closed=false;this.lastResponse=Date.now();}
   async init(){this.keys=await createKeys(this.settings.masterKey);this.clientId=this.settings.clientId||crypto.randomUUID();await this.mailbox.check();void this.poll();return this;}
@@ -8,14 +8,17 @@ export class GitHubClient{
     if(data.job)this.jobs.set(data.job.id,data.job);
     if(data.value?.id&&data.value?.status)this.jobs.set(data.value.id,data.value);
     if(data.value?.session)this.session=data.value.session;
+    while(this.jobs.size>32)this.jobs.delete(this.jobs.keys().next().value);
     if(data.state)this.onState(data.state);
   }
   async poll(){
     if(this.closed)return;let delay=this.pollMs;
     try{
       for(const row of await this.mailbox.read()){
+        if(this.closed)return;
         const packet=this.assembler.accept(row.body,'response');if(!packet)continue;
         let data;try{data=await unseal(this.keys,'response',packet);}catch{continue;}
+        if(this.closed)return;
         if(data.clientId!==this.clientId||!Number.isFinite(data.sentAt)||Math.abs(Date.now()-data.sentAt)>180000)continue;
         const pending=this.pending.get(data.id);
         if(!pending&&(!this.session||data.session!==this.session))continue;
@@ -35,8 +38,10 @@ export class GitHubClient{
   }
   async rpc(kind,path='',method='GET',body=null){
     if(this.closed)throw Error('连接已断开。');
+    if(this.pending.size>=8)throw Error('待回应请求过多，请等待电脑返回结果。');
     const id=crypto.randomUUID(),now=Date.now();
     const packet=await seal(this.keys,'request',{id,clientId:this.clientId,session:this.session,kind,path,method,body,sentAt:now,expiresAt:now+60000});
+    if(this.closed)throw Error('连接已断开。');
     let resolve,reject;const result=new Promise((yes,no)=>{resolve=yes;reject=no;});
     const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('等待电脑回应超时。任务可能已提交，请先检查电脑，不要连续重复提交。'));},85000);
     this.pending.set(id,{resolve,reject,timer});
@@ -54,5 +59,5 @@ export class GitHubClient{
     const value=await this.rpc('api',url,options.method||'GET',options.body?JSON.parse(options.body):null);
     if(match)this.jobs.set(match[1],value);return value;
   }
-  close(reason){this.closed=true;clearTimeout(this.timer);for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error(reason||'连接已关闭。'));}this.pending.clear();if(reason)this.onDisconnect(reason);}
+  close(reason){this.closed=true;this.session=null;clearTimeout(this.timer);this.mailbox.close();for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(Error(reason||'连接已关闭。'));}this.pending.clear();this.keys=null;this.jobs.clear();this.status=undefined;this.summaries=undefined;if(this.settings){this.settings.token='';this.settings.masterKey='';}if(reason)this.onDisconnect(reason);}
 }

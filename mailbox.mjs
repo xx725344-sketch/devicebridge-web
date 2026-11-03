@@ -35,8 +35,14 @@ export class GitHubMailbox{
   async api(path,options={}){
     if(this.now()<this.blockedUntil)throw Error('GitHub 正在限流，请稍后重试。');
     const r=await this.fetcher(this.base+this.path+path,{...options,cache:'no-store',redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+this.settings.token,'X-GitHub-Api-Version':'2022-11-28',...(options.body?{'Content-Type':'application/json'}:{})},signal:AbortSignal.timeout(15000)});
-    if(r.status===403||r.status===429){const delay=Number(r.headers.get('retry-after')||60)*1000;const reset=Number(r.headers.get('x-ratelimit-reset')||0)*1000;this.blockedUntil=Math.max(this.now()+Math.max(delay,60000),r.headers.get('x-ratelimit-remaining')==='0'?reset:0);}
-    if(!r.ok)throw Error(r.status===401?'GitHub 凭据已失效，请重新配置。':r.status===404?'专用私有仓库或任务收件箱不可访问，请检查授权。':r.status===403||r.status===429?'GitHub 拒绝访问或正在限流，请检查权限并稍后重试。':'GitHub 请求失败（'+r.status+'）。');
+    if(!r.ok){
+      let info;try{info=await r.json();}catch{}
+      const message=typeof info?.message==='string'?info.message:'';
+      const limited=r.status===429||r.status===403&&(r.headers.get('x-ratelimit-remaining')==='0'||r.headers.has('retry-after')||/rate limit|abuse detection/i.test(message));
+      if(limited){const delay=Number(r.headers.get('retry-after')||60)*1000;const reset=Number(r.headers.get('x-ratelimit-reset')||0)*1000;this.blockedUntil=Math.max(this.now()+Math.max(Number.isFinite(delay)?delay:60000,60000),r.headers.get('x-ratelimit-remaining')==='0'&&Number.isFinite(reset)?reset:0);throw Error('GitHub 请求已被限流，请等待额度恢复后重试。');}
+      if(r.status===403&&message.includes('Resource not accessible by personal access token'))throw Error('令牌权限不足：请编辑现有令牌，将 devicebridge-mailbox 的 Issues 权限设为 Read and write，再保存。');
+      throw Error(r.status===401?'GitHub 凭据已失效，请重新配置。':r.status===404?'专用私有仓库或任务收件箱不可访问，请检查授权。':r.status===403?'GitHub 拒绝此操作（403），请检查仓库权限或账号限制。':'GitHub 请求失败（'+r.status+'）。');
+    }
     return r.status===204?null:r.json();
   }
   async check(){

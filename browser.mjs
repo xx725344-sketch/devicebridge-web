@@ -1,5 +1,5 @@
-import {GitHubClient} from './transport.mjs?v=20261103-hardened1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-hardened1';
+import {GitHubClient} from './transport.mjs?v=20261103-library1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-library1';
 let current;
 function disconnected(message){globalThis.dispatchEvent(new CustomEvent('bridge-disconnected',{detail:message}));}
 function executionState(state){
@@ -21,7 +21,7 @@ globalThis.bridgeTransport=async(url,options={})=>{
   if(!current)throw Error('请粘贴配对资料连接电脑。');
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权|电脑已重启/.test(error.message)){current.close();disconnected(error.message);}throw error;}
 };
-await import('./app.js?v=20261103-hardened1');
+await import('./app.js?v=20261103-library1');
 const executionButton=document.getElementById('remoteExecution');
 executionButton.addEventListener('click',async()=>{
   const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';

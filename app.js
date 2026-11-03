@@ -32,8 +32,10 @@ function buttons() {
   $('stop').disabled = !connected || !activeId;
 }
 function save() {
-  try { localStorage.setItem('bridge-draft-v1', JSON.stringify({ source: $('code').value, input: $('stdin').value })); $('saved').textContent = '· 已保存到本机'; }
-  catch { $('saved').textContent = '· 浏览器无法保存草稿'; }
+  const item = library.items.find(x => x.id === library.active);
+  item.source = $('code').value; item.input = $('stdin').value;
+  try { localStorage.setItem('bridge-library-v1', JSON.stringify(library)); $('saved').textContent = '· 已保存到此浏览器'; return true; }
+  catch { $('saved').textContent = '· 保存失败，请下载代码备份'; return false; }
 }
 function lines() {
   const count = $('code').value.split('\n').length;
@@ -42,11 +44,61 @@ function lines() {
   $('lineInfo').textContent = `第 ${before.length} 行，第 ${before.at(-1).length + 1} 列`;
   $('lineNumbers').scrollTop = $('code').scrollTop;
 }
+let library;
 try {
-  const draft = JSON.parse(localStorage.getItem('bridge-draft-v1') || 'null');
-  $('code').value = typeof draft?.source === 'string' ? draft.source : samples.function.source;
-  $('stdin').value = typeof draft?.input === 'string' ? draft.input : '';
-} catch { $('code').value = samples.function.source; }
+  const stored = JSON.parse(localStorage.getItem('bridge-library-v1') || 'null');
+  if (stored && Array.isArray(stored.items) && stored.items.length && stored.items.every(x => typeof x.id === 'string' && typeof x.name === 'string' && typeof x.source === 'string' && typeof x.input === 'string') && stored.items.some(x => x.id === stored.active)) library = stored;
+} catch {}
+if (!library) {
+  let draft;
+  try { draft = JSON.parse(localStorage.getItem('bridge-draft-v1') || 'null'); } catch {}
+  library = { active: 'original', items: [{ id: 'original', name: '原有练习.c', source: typeof draft?.source === 'string' ? draft.source : samples.function.source, input: typeof draft?.input === 'string' ? draft.input : '' }] };
+}
+function showDocument() {
+  const item = library.items.find(x => x.id === library.active);
+  $('code').value = item.source; $('stdin').value = item.input;
+  $('fileName').textContent = item.name;
+  $('documents').replaceChildren(...library.items.map(x => { const option = document.createElement('option'); option.value = x.id; option.textContent = x.name; return option; }));
+  $('documents').value = item.id; $('code').scrollTop = 0; lines();
+}
+function newDocument(source = '', input = '', suggested = '新练习.c') {
+  if (!save()) return toast('当前代码未保存，请先下载备份。');
+  if (library.items.length >= 100) return toast('最多保存 100 份练习，请先下载备份并整理。');
+  let name = prompt('给这份练习起个名字', suggested);
+  if (name === null) return;
+  name = name.trim().replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').slice(0, 80);
+  if (!name) return toast('请填写练习名称。');
+  if (!name.endsWith('.c')) name += '.c';
+  const previous = library.active;
+  const item = { id: crypto.randomUUID(), name, source, input };
+  library.items.push(item); library.active = item.id; showDocument();
+  if (!save()) { library.items.pop(); library.active = previous; showDocument(); return toast('保存空间不足，未新建。原有练习已保留。'); }
+  $('code').focus();
+}
+showDocument(); save();
+$('newCode').addEventListener('click', () => newDocument());
+$('documents').addEventListener('change', () => {
+  const next = $('documents').value;
+  if (!save()) { $('documents').value = library.active; return toast('当前代码未保存，请先下载备份。'); }
+  library.active = next; showDocument(); save();
+});
+$('renameCode').addEventListener('click', () => {
+  const item = library.items.find(x => x.id === library.active);
+  const name = prompt('新的练习名称', item.name);
+  if (!name?.trim()) return;
+  item.name = name.trim().replace(/[\\/:*?"<>|\x00-\x1f]/g, '_').slice(0, 80);
+  if (!item.name.endsWith('.c')) item.name += '.c';
+  save(); showDocument();
+});
+$('importCode').addEventListener('click', () => $('codeFile').click());
+$('codeFile').addEventListener('change', async () => {
+  const file = $('codeFile').files[0]; $('codeFile').value = '';
+  if (!file) return;
+  if (file.size > 60000) return toast('请选择不超过 60 KB 的 C 文件。');
+  try { newDocument(await file.text(), '', file.name); } catch { toast('读取文件失败。'); }
+});
+$('writeOffline').addEventListener('click', () => { $('pairOverlay').hidden = true; setConnected(false); });
+$('connectAgain').addEventListener('click', () => { $('pairOverlay').hidden = false; });
 lines();
 $('code').addEventListener('input', () => { lines(); save(); });
 $('code').addEventListener('click', lines); $('code').addEventListener('keyup', lines);
@@ -61,13 +113,11 @@ $('code').addEventListener('keydown', event => {
 });
 $('sample').addEventListener('change', () => {
   const sample = samples[$('sample').value]; if (!sample) return;
-  if ($('code').value.trim() && !Object.values(samples).some(x => x.source === $('code').value) && !confirm('载入示例会替换当前代码。需要保留时，请先下载代码。继续载入？')) { $('sample').value = ''; return; }
-  $('code').value = sample.source; $('stdin').value = sample.input;
-  $('code').scrollTop = 0; lines(); save(); $('sample').value = '';
+  newDocument(sample.source, sample.input, $('sample').selectedOptions[0].textContent + '.c'); $('sample').value = '';
 });
 $('download').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([$('code').value], { type: 'text/plain;charset=utf-8' }));
-  const link = document.createElement('a'); link.href = url; link.download = 'main.c'; link.click();
+  const link = document.createElement('a'); link.href = url; link.download = library.items.find(x => x.id === library.active).name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 });
 function render(job) {

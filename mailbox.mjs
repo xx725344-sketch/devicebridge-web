@@ -51,7 +51,13 @@ export class GitHubMailbox{
       if(!Array.isArray(rows))throw Error('GitHub 响应格式异常。');all.push(...rows);if(rows.length<100)break;if(page===10)throw Error('消息积压过多，请创建新的专用收件箱。');
     }
     const fresh=all.filter(row=>row.id>this.lastId).sort((a,b)=>a.id-b.id);
-    for(const row of fresh){this.lastId=Math.max(this.lastId,row.id);if(row.created_at>this.since)this.since=row.created_at;}
+    for(const row of fresh){
+      this.lastId=Math.max(this.lastId,row.id);
+      // GitHub timestamps may have only second precision. Overlap the cursor
+      // so a later comment in the same second is not skipped; IDs deduplicate.
+      const overlap=Date.parse(row.created_at)-1000;
+      if(Number.isFinite(overlap)&&overlap>Date.parse(this.since))this.since=new Date(overlap).toISOString();
+    }
     return fresh;
   }
   async send(direction,packet){

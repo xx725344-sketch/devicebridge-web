@@ -1,10 +1,38 @@
-import {createKeys,seal,unseal} from './crypto.mjs?v=20261103-library1';
-import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261103-library1';
+import {createKeys,seal,unseal} from './crypto.mjs?v=20261103-editor1';
+import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261103-editor1';
 export class GitHubClient{
   constructor(settings,{mailbox,pollMs=6000,onDisconnect=()=>{},onState=()=>{}}={}){this.settings=settings;this.mailbox=mailbox||new GitHubMailbox(settings);this.pollMs=pollMs;this.onDisconnect=onDisconnect;this.onState=onState;this.assembler=new Assembler();this.pending=new Map();this.jobs=new Map();this.closed=false;this.lastResponse=Date.now();}
   async init(){this.keys=await createKeys(this.settings.masterKey);this.clientId=this.settings.clientId||crypto.randomUUID();await this.mailbox.check();void this.poll();return this;}
+  connection(recovering,message=''){
+    this.recovering=recovering;
+    this.onConnection?.({recovering,message});
+  }
+  resume(){
+    if(this.closed||!this.session||this.resuming||Date.now()<(this.nextResume||0)||Date.now()<this.mailbox.blockedUntil)return;
+    this.nextResume=Date.now()+60000;
+    this.connection(true,'正在恢复连接并查询任务状态…');
+    // Only repeat a handshake. Never replay code submissions or control commands.
+    this.resuming=this.rpc('hello').then(()=>{
+      if(!this.closed)this.connection(false);
+    }).catch(error=>{
+      if(this.closed)return;
+      if(/撤销|未获电脑授权|请在电脑管理页面允许编号|凭据已失效|尚未允许远程执行/.test(error.message))this.close(error.message);
+      else this.connection(true,'暂未收到电脑回应，将自动重试。请保持电脑开机并联网。');
+    }).finally(()=>{this.resuming=null;});
+  }
+  wake(){
+    if(this.closed)return;
+    if(this.session&&Date.now()-this.lastResponse>120000)this.resume();
+    clearTimeout(this.timer);void this.poll();
+  }
   update(data){
-    if(data.state){this.status=data.state.status;this.summaries=data.state.jobs;}
+    if(data.state){
+      this.status=data.state.status;this.summaries=data.state.jobs;
+      for(const summary of this.summaries||[]){
+        const cached=this.jobs.get(summary.id);
+        if(cached&&(cached.status!==summary.status||cached.finishedAt!==summary.finishedAt))this.jobs.delete(summary.id);
+      }
+    }
     if(data.job)this.jobs.set(data.job.id,data.job);
     if(data.value?.id&&data.value?.status)this.jobs.set(data.value.id,data.value);
     if(data.value?.session)this.session=data.value.session;
@@ -12,7 +40,7 @@ export class GitHubClient{
     if(data.state)this.onState(data.state);
   }
   async poll(){
-    if(this.closed)return;let delay=this.pollMs;
+    if(this.closed||this.polling)return;this.polling=true;let delay=this.pollMs;
     try{
       for(const row of await this.mailbox.read()){
         if(this.closed)return;
@@ -24,16 +52,18 @@ export class GitHubClient{
         if(!pending&&(!this.session||data.session!==this.session))continue;
         this.lastResponse=Date.now();
         if(data.event==='closed'){this.close(data.error);return;}
-        if(!data.error)this.update(data);
+        if(!data.error){this.update(data);this.connection(false);}
         if(pending){clearTimeout(pending.timer);this.pending.delete(data.id);data.error?pending.reject(Error(data.error)):pending.resolve(data.value);}
       }
-      if(this.session&&Date.now()-this.lastResponse>210000){this.close('电脑长时间未回应，请重新连接。');return;}
+      if(this.session&&Date.now()-this.lastResponse>120000)this.resume();
     }catch(error){
       this.lastError=error.message;
       if(/凭据已失效|专用私有仓库或任务收件箱不可访问/.test(error.message)){this.close(error.message);return;}
       delay=Math.max(15000,this.mailbox.blockedUntil-Date.now());
+      if(this.session)this.connection(true, this.mailbox.blockedUntil>Date.now()?'GitHub 暂时限流，等待后自动恢复。':'网络暂时中断，正在等待恢复。');
+    }finally{
+      this.polling=false;
     }
-    if(this.session&&Date.now()-this.lastResponse>210000){this.close('电脑长时间未回应，请重新连接。');return;}
     if(!this.closed)this.timer=setTimeout(()=>void this.poll(),Math.min(Math.max(delay,1000),3600000));
   }
   async rpc(kind,path='',method='GET',body=null){
@@ -45,6 +75,8 @@ export class GitHubClient{
     let resolve,reject;const result=new Promise((yes,no)=>{resolve=yes;reject=no;});
     const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('等待电脑回应超时。任务可能已提交，请先检查电脑，不要连续重复提交。'));},85000);
     this.pending.set(id,{resolve,reject,timer});
+    // Attach the rejection handler immediately: sending may itself outlast the reply timer.
+    void result.catch(()=>{});
     try{await this.mailbox.send('request',packet);}catch(error){clearTimeout(timer);this.pending.delete(id);reject(error);}
     return result;
   }

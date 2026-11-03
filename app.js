@@ -9,6 +9,7 @@ const samples = {
 const labels = { queued: '等待执行', compiling: '正在编译', running: '正在运行', success: '运行成功', compile_error: '编译失败', runtime_error: '程序异常', timeout: '运行超时', cancelled: '已停止', output_limit: '输出已达上限', error: '执行失败' };
 let connected = false, activeId = null, selectedId = null, pollTimer, toastTimer;
 let polling = false, submitting = false;
+let pendingFinalId = null, fetchingFinal = false;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 async function api(url, options = {}) {
   if (globalThis.bridgeTransport) return globalThis.bridgeTransport(url, options);
@@ -28,8 +29,9 @@ function setConnected(value) {
   buttons();
 }
 function buttons() {
-  $('run').disabled = !connected || globalThis.bridgeExecutionEnabled === false || !!activeId || submitting;
+  $('run').disabled = !connected || globalThis.bridgeExecutionEnabled === false || globalThis.bridgeLinkRecovering === true || !!activeId || submitting;
   $('stop').disabled = !connected || !activeId;
+  if(globalThis.bridgeLinkRecovering){$('connectionState').textContent = globalThis.bridgeLinkMessage || '正在恢复连接…';$('connectionDot').classList.toggle('online',false);}
 }
 function save() {
   const item = library.items.find(x => x.id === library.active);
@@ -38,6 +40,7 @@ function save() {
   catch { $('saved').textContent = '· 保存失败，请下载代码备份'; return false; }
 }
 function lines() {
+  if(globalThis.bridgeEditor){$('codeHighlight').innerHTML=globalThis.bridgeEditor.highlight($('code').value);syncEditorScroll();}
   const count = $('code').value.split('\n').length;
   $('lineNumbers').textContent = Array.from({ length: count }, (_, i) => i + 1).join('\n');
   const before = $('code').value.slice(0, $('code').selectionStart).split('\n');
@@ -102,9 +105,28 @@ $('connectAgain').addEventListener('click', () => { $('pairOverlay').hidden = fa
 lines();
 $('code').addEventListener('input', () => { lines(); save(); });
 $('code').addEventListener('click', lines); $('code').addEventListener('keyup', lines);
-$('code').addEventListener('scroll', () => { $('lineNumbers').scrollTop = $('code').scrollTop; });
+function syncEditorScroll(){const layer=$('codeHighlight');if(layer){layer.scrollTop=$('code').scrollTop;layer.scrollLeft=$('code').scrollLeft;}}
+$('code').addEventListener('scroll', () => { $('lineNumbers').scrollTop = $('code').scrollTop; syncEditorScroll(); });
 $('stdin').addEventListener('input', save);
+$('insertHeader').addEventListener('click',()=>{
+  const name=$('headerSelect').value;
+  if(!/^[a-z0-9]+\.h$/.test(name))return;
+  const directive=`#include <${name}>`;
+  if($('code').value.includes(directive))return toast('这份代码已经包含该头文件。');
+  $('code').setRangeText(directive+'\n',0,0,'end');lines();save();
+});
+function insertNewline(event){
+  if(event.isComposing||!globalThis.bridgeEditor)return;
+  event.preventDefault();const editor=$('code'),start=editor.selectionStart;
+  const edit=globalThis.bridgeEditor.newline(editor.value,start,editor.selectionEnd);
+  editor.setRangeText(edit.text,start,editor.selectionEnd,'end');
+  editor.setSelectionRange(start+edit.caret,start+edit.caret);lines();save();
+}
+$('code').addEventListener('beforeinput',event=>{
+  if(event.inputType==='insertLineBreak'||event.inputType==='insertParagraph')insertNewline(event);
+});
 $('code').addEventListener('keydown', event => {
+  if(event.key==='Enter')return insertNewline(event);
   if (event.key === 'Tab') {
     event.preventDefault();
     $('code').setRangeText('    ', $('code').selectionStart, $('code').selectionEnd, 'end');
@@ -127,7 +149,12 @@ function render(job) {
   if (job.compileLog) chunks.push('── 编译信息 ──\n' + job.compileLog);
   if (job.stdout) chunks.push(job.stdout);
   if (job.stderr) chunks.push('── 程序错误 ──\n' + job.stderr);
-  if (job.status === 'timeout') chunks.push('程序超过时限，已终止。请检查循环或递归的结束条件。');
+  if (job.status === 'timeout') {
+    $('jobStatus').textContent = job.timeoutPhase === 'compiling' ? '编译超时' : '运行超时';
+    chunks.push(job.timeoutPhase === 'compiling'
+      ? `编译超过 ${job.timeLimitSeconds || 60} 秒，已终止。请检查源码或电脑负载。`
+      : `运行超过 ${job.timeLimitSeconds || '所选'} 秒，已终止。可选择更长运行时限；也请检查循环、递归和输入数据。`);
+  }
   if (job.status === 'cancelled') chunks.push('你已停止这个任务。');
   if (job.status === 'output_limit') chunks.push('输出超过 64 KB，已终止程序。请检查是否在不停打印。');
   if (!chunks.length) chunks.push(job.finishedAt ? '程序没有文字输出。' : '电脑正在处理，请稍候…');
@@ -158,10 +185,16 @@ async function refresh() {
   $('deviceName').textContent = data.name; $('compilerInfo').textContent = data.compiler;
   const previous = activeId; activeId = data.activeJob;
   if (activeId && activeId !== previous) selectedId = activeId;
+  if(previous&&!activeId&&selectedId===previous)pendingFinalId=previous;
+  if(pendingFinalId&&!fetchingFinal){
+    const id=pendingFinalId;fetchingFinal=true;
+    try{const job=await api(`/api/jobs/${id}`);if(selectedId===id)render(job);if(job.finishedAt&&pendingFinalId===id)pendingFinalId=null;}catch{}
+    finally{fetchingFinal=false;}
+  }
   if (activeId) schedulePoll(); buttons();
   await history();
 }
-function schedulePoll() { clearTimeout(pollTimer); pollTimer = setTimeout(poll, 450); }
+function schedulePoll() { clearTimeout(pollTimer); pollTimer = setTimeout(poll, globalThis.bridgeTransport ? 2000 : 450); }
 async function poll() {
   if (!activeId || polling) return;
   polling = true;
@@ -210,4 +243,4 @@ globalThis.addEventListener('bridge-disconnected', event => {
 refresh().catch(() => { $('pairOverlay').hidden = false; });
 setInterval(() => { if ($('pairOverlay').hidden) refresh().catch(() => setConnected(false)); }, 8000);
 
-globalThis.addEventListener('bridge-state',()=>buttons());
+globalThis.addEventListener('bridge-state',()=>setConnected(connected));

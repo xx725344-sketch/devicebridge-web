@@ -1,6 +1,14 @@
-import {GitHubClient} from './transport.mjs?v=20261103-library1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-library1';
+import {GitHubClient} from './transport.mjs?v=20261103-editor1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-editor1';
 let current;
+function linkState({recovering,message}){
+  globalThis.bridgeLinkRecovering=recovering;
+  globalThis.bridgeLinkMessage=message;
+  globalThis.dispatchEvent(new Event('bridge-state'));
+}
+globalThis.addEventListener('online',()=>current?.wake());
+globalThis.addEventListener('pageshow',()=>current?.wake());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)current?.wake();});
 function disconnected(message){globalThis.dispatchEvent(new CustomEvent('bridge-disconnected',{detail:message}));}
 function executionState(state){
   const button=document.getElementById('remoteExecution');if(!button)return;
@@ -15,13 +23,14 @@ globalThis.bridgeTransport=async(url,options={})=>{
     let clientId;try{clientId=localStorage.getItem('bridge-github-client-id');}catch{}
     if(!/^[a-f0-9-]{36}$/.test(clientId||'')){clientId=crypto.randomUUID();try{localStorage.setItem('bridge-github-client-id',clientId);}catch{}}
     current=await new GitHubClient({...settings,clientId},{onDisconnect:disconnected,onState:executionState}).init();
+    current.onConnection=linkState;linkState({recovering:false,message:''});
     try{await current.rpc('hello');return {ok:true};}catch(error){current.close();throw error;}
   }
   if(url==='/api/logout'){current?.close();current=null;return {ok:true};}
   if(!current)throw Error('请粘贴配对资料连接电脑。');
-  try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权|电脑已重启/.test(error.message)){current.close();disconnected(error.message);}throw error;}
+  try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权/.test(error.message)){current.close();disconnected(error.message);}else if(/电脑已重启/.test(error.message)){current.nextResume=0;current.resume();}throw error;}
 };
-await import('./app.js?v=20261103-library1');
+await import('./app.js?v=20261103-editor1');
 const executionButton=document.getElementById('remoteExecution');
 executionButton.addEventListener('click',async()=>{
   const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';

@@ -28,7 +28,7 @@ function setConnected(value) {
   buttons();
 }
 function buttons() {
-  $('run').disabled = !connected || !!activeId || submitting;
+  $('run').disabled = !connected || globalThis.bridgeExecutionEnabled === false || !!activeId || submitting;
   $('stop').disabled = !connected || !activeId;
 }
 function save() {
@@ -159,3 +159,5 @@ globalThis.addEventListener('bridge-disconnected', event => {
 // 已有 cookie 时自动恢复；网络断开后定期尝试重新连接。
 refresh().catch(() => { $('pairOverlay').hidden = false; });
 setInterval(() => { if ($('pairOverlay').hidden) refresh().catch(() => setConnected(false)); }, 8000);
+
+globalThis.addEventListener('bridge-state',()=>buttons());

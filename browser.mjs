@@ -1,21 +1,33 @@
-import {GitHubClient} from './transport.mjs?v=20261103-safari1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-safari1';
+import {GitHubClient} from './transport.mjs?v=20261103-remote1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261103-remote1';
 let current;
 function disconnected(message){globalThis.dispatchEvent(new CustomEvent('bridge-disconnected',{detail:message}));}
+function executionState(state){
+  const button=document.getElementById('remoteExecution');if(!button)return;
+  globalThis.bridgeExecutionEnabled=state.status.remoteExecutionEnabled!==false;
+  button.hidden=!state.status.remoteControlAllowed;button.textContent=state.status.remoteExecutionEnabled?'关闭电脑执行':'开启电脑执行';
+  globalThis.dispatchEvent(new Event('bridge-state'));
+}
 globalThis.bridgeTransport=async(url,options={})=>{
   if(url==='/api/pair'){
     current?.close();let settings;
     try{settings=JSON.parse(JSON.parse(options.body).code);}catch{throw Error('请粘贴电脑管理页复制的完整配对资料。');}
     let clientId;try{clientId=localStorage.getItem('bridge-github-client-id');}catch{}
     if(!/^[a-f0-9-]{36}$/.test(clientId||'')){clientId=crypto.randomUUID();try{localStorage.setItem('bridge-github-client-id',clientId);}catch{}}
-    current=await new GitHubClient({...settings,clientId},{onDisconnect:disconnected}).init();
+    current=await new GitHubClient({...settings,clientId},{onDisconnect:disconnected,onState:executionState}).init();
     try{await current.rpc('hello');return {ok:true};}catch(error){current.close();throw error;}
   }
   if(url==='/api/logout'){current?.close();current=null;return {ok:true};}
   if(!current)throw Error('请粘贴配对资料连接电脑。');
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权|电脑已重启/.test(error.message)){current.close();disconnected(error.message);}throw error;}
 };
-await import('./app.js?v=20261103-safari1');
+await import('./app.js?v=20261103-remote1');
+const executionButton=document.getElementById('remoteExecution');
+executionButton.addEventListener('click',async()=>{
+  const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';
+  try{if(!current?.session)throw Error('请先连接电脑。');const value=await current.rpc('control','/api/remote-execution','POST',{enabled:!current.status.remoteExecutionEnabled});notice.textContent=value.enabled?'电脑已允许执行。':'电脑执行已关闭，保持连接可再次开启。';}
+  catch(e){notice.textContent=e.message;}finally{executionButton.disabled=false;}
+});
 const photo=document.getElementById('pairPhoto'),scan=document.getElementById('scanPair');
 scan.addEventListener('click',()=>photo.click());
 photo.addEventListener('change',async()=>{

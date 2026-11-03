@@ -5,7 +5,7 @@
   <meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data: blob:; media-src 'self' blob:; base-uri 'none'; form-action 'self'"><meta name="theme-color" content="#142d36">
   <title>设备桥 · 把电脑的能力带在身边</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
-  <script type="module" src="./browser.mjs?v=20261103-safari1"></script>
+  <script type="module" src="./browser.mjs?v=20261103-remote1"></script>
 </head>
 <body>
   <aside class="sidebar">
@@ -17,7 +17,7 @@
     <div class="side-bottom"><span>GitHub 实验版 · v0.3</span><button id="logout" class="text-button" hidden>断开连接 ↗</button></div>
   </aside>
   <main>
-    <header><div class="breadcrumb">我的设备 <span>/</span> C 语言工作台</div><span id="networkBadge" class="local-badge">● 设备连接</span></header>
+    <header><div class="breadcrumb">我的设备 <span>/</span> C 语言工作台</div><button id="remoteExecution" class="secondary" type="button" hidden>开启电脑执行</button><span id="remoteNotice" role="status"></span><span id="networkBadge" class="local-badge">● 设备连接</span></header>
     <section class="intro"><div><div class="eyebrow">A LITTLE CODE. A BIGGER WORLD.</div><h1>你的代码，随处运行<span>。</span></h1><p>用手机或 iPad 写 C，让自己的电脑完成编译和运行。</p></div><div class="intro-mark" aria-hidden="true">{ <span>C</span> }</div></section>
     <section class="workspace" aria-label="C 代码工作台">
       <div class="editor-panel panel">

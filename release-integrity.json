@@ -1,25 +1,25 @@
 {
-  "version": "0.16",
+  "version": "0.17",
   "bundler": "esbuild 0.28.2",
   "files": {
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "QR-LICENSES.txt": "38b4bf78f2c1cccc673ca8e8d5ac8a4b5ad0f643b9e72b7c4f782cbc7a8b1d50",
-    "app.js": "67f4cc7110eea6e61977251acd7091682b35ff2c2f66ecb529fc017d6710bb37",
+    "app.js": "c98f12284374a73925fdaed98af2c8859b8f0541d714a8fb568947a9c9f7075c",
     "apple-touch-icon.png": "d5a037e74746b7a0cd88acb9930a7623159c71c295334b8f5a9025b8f90b4c87",
-    "browser.mjs": "a0afb1ae392888a5779696177f4e42795b97e8c2740394bab5da39b46d16f3d9",
+    "browser.mjs": "131655f2a0befead5ee74f50ea9cf23404e0012a252446043514389bd706bce3",
     "crypto.mjs": "4025957ef5b49b02d044c10e89f35539c756877082c5daa56dd0873278f3e2ef",
     "editor.js": "df6211135d9d90c483cd74fc7a2de7e839d34fa71b1e1d7de5e4dc74bce0076e",
     "favicon.svg": "71be2f6cd8dfe60284647df90535ae7775fdb1154bd00b6e0b4abcd586e5268a",
     "icon-192.png": "0ecd070c98b2134224dc10cfd136f61491ab6baa21f6300d0f275aaa7e0cfe5a",
     "icon-512.png": "d90140c41a199ba01d6a8ec035498d8ceea7a376033ab87d7d8c3daf078d4a05",
-    "index.html": "47a3d6ecaa3b74e712dc9902159c86ff60b46be63596c2bada6cb4ed873136a6",
+    "index.html": "c31b0c107d202b1132aa3e2fd36efefa82175cdb75003b0aac70ebf08957dfbf",
     "install.js": "efc5fde4dbe1c4b9e566810a8e4033158d5f7def966079ea74cbbcc94cec2835",
     "mailbox.mjs": "bb5ef606597885251f6c46cdb7c26ba15f0ad6c4d4300a9cbe43abb8a69204b2",
-    "manifest.webmanifest": "58e2d46502c18dfeaf984349d232757b0892a8b5de8ae7eba7e3d2757a0502f8",
+    "manifest.webmanifest": "8f3a520943f9794d447e5f60bc4c1963d915affc2a0bee3715ad3341aab87db0",
     "scan-qr.mjs": "74540798497415062aae04e2da7d366ec94b856389fbf12a0144475dfdac690c",
-    "style.css": "7c8e872185a17b326f15bb7f9218257f9bd9702961854514e1bbfbd681bc0576",
-    "transport.mjs": "0ca24d57069db7806ffa02cc0075ed6d2e38b7f94b359fd408852b957d7c06ea",
+    "style.css": "321ad65820fc29bb3b59f02227808f2b083fe735a735e1390cb4cadb2a4ff628",
+    "transport.mjs": "ca67c389e41434e23c07cf4d939776fd07366ddec7fb0945a38e4cb00880da17",
     "wallpaper.jpg": "ef7659de6a06c09bd65b6c460dbf4c6cb28d749276683e3736aca4deb2c26678",
-    "workbench-d95f5c74c19dfb51.mjs": "d95f5c74c19dfb511f1c299aa3932d5325d11f1246484dbb11eff2dd2761aa9a"
+    "workbench-89ad7e4215380890.mjs": "89ad7e4215380890baf56c721c334b8d69f43bd7b54c19555984e125468c965e"
   }
 }

@@ -95,7 +95,7 @@ $('focusEditor').addEventListener('click',()=>{
   $('focusEditor').textContent=focused?'退出专注':'专注编辑';$('focusEditor').setAttribute('aria-pressed',String(focused));
 });
 $('fontSize').addEventListener('change',()=>{
-  const value=Number($('fontSize').value);if(![13,15,17,19].includes(value))return;
+  const value=Number($('fontSize').value);if(![13,15,16,17,19].includes(value))return;
   document.documentElement.style.setProperty('--editor-size',value+'px');
 });
 for(const button of document.querySelectorAll('[data-insert]')){
@@ -256,7 +256,7 @@ function renderInsights(jobs){
   for(const [i,job] of recent.entries()){
     const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
     const height=Math.max(3,(Number(job.duration)||0)/maximum*64);
-    for(const [key,value] of Object.entries({x:10+i*24,y:76-height,width:15,height,rx:4,fill:job.status==='success'?'#92702e':'#a44c3a'}))bar.setAttribute(key,String(value));
+    for(const [key,value] of Object.entries({x:10+i*24,y:76-height,width:15,height,rx:4,fill:job.status==='success'?'#3478df':'#c45659'}))bar.setAttribute(key,String(value));
     const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${labels[job.status]||job.status} · ${((Number(job.duration)||0)/1000).toFixed(2)} 秒`;bar.append(title);chart.append(bar);
   }
 }

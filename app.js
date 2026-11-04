@@ -258,7 +258,7 @@ async function refresh() {
   const data = await api('/api/status');
   setConnected(true); $('pairOverlay').hidden = true;
   $('networkBadge').textContent = data.mode === 'github' ? '● GitHub 加密任务 · 有延迟' : data.mode === 'cloud' ? '● 云端中转 · 内容加密' : data.mode === 'tailscale' ? '● 跨网络 · Tailscale' : '● 局域网连接';
-  $('deviceName').textContent = data.name; $('compilerInfo').textContent = data.compiler;
+  $('deviceName').textContent = data.name; $('compilerInfo').textContent = data.compiler + (data.isolation ? ' · '+data.isolation : '');
   const previous = activeId; activeId = data.activeJob;
   if (activeId && activeId !== previous) selectedId = activeId;
   if(previous&&!activeId&&selectedId===previous)pendingFinalId=previous;

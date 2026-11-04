@@ -10,7 +10,11 @@ const labels = { queued: '等待执行', compiling: '正在编译', running: '�
 let connected = false, activeId = null, selectedId = null, pollTimer, toastTimer;
 let polling = false, submitting = false, refreshing = false;
 let pendingFinalId = null, fetchingFinal = false;
-function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
+function toast(message) {
+  $('toast').textContent = message; $('toast').hidden = false;
+  for(const [panel,status] of [['libraryDialog','libraryStatus'],['toolsDialog','toolsStatus']])if($(panel).open)$(status).textContent=message;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000);
+}
 async function api(url, options = {}) {
   if (globalThis.bridgeTransport) return globalThis.bridgeTransport(url, options);
   const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
@@ -65,6 +69,53 @@ function showDocument() {
   $('fileName').textContent = item.name;
   $('documents').replaceChildren(...library.items.map(x => { const option = document.createElement('option'); option.value = x.id; option.textContent = x.name; return option; }));
   $('documents').value = item.id; $('code').scrollTop = 0; lines();
+  renderLibrary();
+}
+function renderLibrary() {
+  const term=$('findDocument').value.trim().toLocaleLowerCase();
+  const matches=library.items.filter(item=>item.name.toLocaleLowerCase().includes(term));
+  $('libraryCount').textContent=String(library.items.length);
+  $('libraryEmpty').hidden=matches.length>0;
+  $('libraryList').replaceChildren(...matches.map(item=>{
+    const button=document.createElement('button');
+    button.type='button';button.className='document-card';
+    button.setAttribute('aria-pressed',String(item.id===library.active));
+    const name=document.createElement('strong');name.textContent=item.name;
+    const detail=document.createElement('span');
+    detail.textContent=(item.id===library.active?'正在编辑 · ':'')+item.source.split('\n').length+' 行';
+    button.append(name,detail);
+    button.addEventListener('click',()=>{
+      if(!save())return toast('当前代码未保存，请先下载备份。');
+      library.active=item.id;showDocument();save();
+      closePanel('libraryDialog');$('code').focus();
+    });
+    return button;
+  }));
+}
+let panelOpener;
+function openPanel(id,opener){
+  for(const other of ['libraryDialog','toolsDialog'])if(other!==id&&$(other).open)closePanel(other);
+  panelOpener=opener;
+  $(id==='libraryDialog'?'libraryStatus':'toolsStatus').textContent='';
+  if(id==='libraryDialog')renderLibrary();
+  const panel=$(id);
+  if(typeof panel.showModal==='function')panel.showModal();
+  else {panel.setAttribute('open','');panel.setAttribute('role','dialog');}
+  $(id==='libraryDialog'?'findDocument':'closeTools').focus();
+}
+function closePanel(id){
+  const panel=$(id);
+  if(typeof panel.close==='function')panel.close();else panel.removeAttribute('open');
+  panelOpener?.focus();
+}
+for(const [opener,panel,closer] of [['openLibrary','libraryDialog','closeLibrary'],['openTools','toolsDialog','closeTools']]){
+  $(opener).addEventListener('click',()=>openPanel(panel,$(opener)));
+  $(closer).addEventListener('click',()=>closePanel(panel));
+  $(panel).addEventListener('click',event=>{if(event.target===$(panel)){
+    const box=$(panel).getBoundingClientRect();
+    if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)closePanel(panel);
+  }});
+  $(panel).addEventListener('cancel',()=>{panelOpener?.focus();});
 }
 function newDocument(source = '', input = '', suggested = '新练习.c') {
   if (!save()) return toast('当前代码未保存，请先下载备份。');
@@ -79,6 +130,7 @@ function newDocument(source = '', input = '', suggested = '新练习.c') {
   library.items.push(item); library.active = item.id; showDocument();
   if (!save()) { library.items.pop(); library.active = previous; showDocument(); return toast('保存空间不足，未新建。原有练习已保留。'); }
   $('code').focus();
+  closePanel('libraryDialog');closePanel('toolsDialog');$('code').focus();
 }
 showDocument(); save();
 $('newCode').addEventListener('click', () => newDocument());
@@ -89,6 +141,7 @@ $('findDocument').addEventListener('input',()=>{
     const option=document.createElement('option');option.value=x.id;option.textContent=x.name;return option;
   }));
   $('documents').value=library.active;
+  renderLibrary();
 });
 $('focusEditor').addEventListener('click',()=>{
   const focused=document.body.classList.toggle('editor-focused');
@@ -130,7 +183,7 @@ $('codeFile').addEventListener('change', async () => {
   try { newDocument(await file.text(), '', file.name); } catch { toast('读取文件失败。'); }
 });
 $('writeOffline').addEventListener('click', () => { $('pairOverlay').hidden = true; setConnected(false); });
-$('connectAgain').addEventListener('click', () => { $('pairOverlay').hidden = false; });
+$('connectAgain').addEventListener('click', () => { closePanel('toolsDialog'); $('pairOverlay').hidden = false; $('pairCode').focus(); });
 lines();
 $('code').addEventListener('input', () => { lines(); save(); });
 $('code').addEventListener('click', lines); $('code').addEventListener('keyup', lines);
@@ -143,6 +196,7 @@ $('insertHeader').addEventListener('click',()=>{
   const directive=`#include <${name}>`;
   if($('code').value.includes(directive))return toast('这份代码已经包含该头文件。');
   $('code').setRangeText(directive+'\n',0,0,'end');lines();save();
+  closePanel('toolsDialog');$('code').focus();
 });
 function insertNewline(event){
   if(event.isComposing||event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||!globalThis.bridgeEditor)return;
@@ -233,13 +287,13 @@ async function history() {
   const data = await api('/api/jobs');
   renderInsights(data.jobs);
   $('history').replaceChildren();
-  if (!data.jobs.length) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = '还没有运行记录。试试你的第一个函数。'; $('history').append(p); }
+  if (!data.jobs.length) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = '暂无运行记录。'; $('history').append(p); }
   for (const job of data.jobs) {
     const row = document.createElement('button'); row.className = 'history-row';
     const name = document.createElement('span'); name.textContent = `${job.status === 'success' ? '✓' : job.finishedAt ? '·' : '↻'}  main.c · ${labels[job.status] || job.status}`;
     const time = document.createElement('span'); time.className = 'time'; time.textContent = new Date(job.createdAt).toLocaleTimeString('zh-CN');
     row.append(name, time); row.addEventListener('click', async () => {
-      try { const latest = await api(`/api/jobs/${job.id}`); selectedId = job.id; render(latest); }
+      try { const latest = await api(`/api/jobs/${job.id}`); selectedId = job.id; render(latest); closePanel('toolsDialog'); $('output').scrollIntoView?.({block:'nearest'}); }
       catch (error) { toast(error.message); }
     }); $('history').append(row);
   }

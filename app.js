@@ -145,16 +145,25 @@ $('insertHeader').addEventListener('click',()=>{
   $('code').setRangeText(directive+'\n',0,0,'end');lines();save();
 });
 function insertNewline(event){
-  if(event.isComposing||!globalThis.bridgeEditor)return;
+  if(event.isComposing||event.defaultPrevented||event.ctrlKey||event.metaKey||event.altKey||!globalThis.bridgeEditor)return;
   event.preventDefault();const editor=$('code'),start=editor.selectionStart;
   const edit=globalThis.bridgeEditor.newline(editor.value,start,editor.selectionEnd);
   editor.setRangeText(edit.text,start,editor.selectionEnd,'end');
   editor.setSelectionRange(start+edit.caret,start+edit.caret);lines();save();
 }
+function insertClosingBrace(event){
+  if(event.isComposing||event.defaultPrevented||!globalThis.bridgeEditor)return;
+  const editor=$('code'),edit=globalThis.bridgeEditor.closingBrace(editor.value,editor.selectionStart,editor.selectionEnd);
+  if(!edit)return;
+  event.preventDefault();editor.setRangeText(edit.text,edit.start,edit.end,'end');
+  editor.setSelectionRange(edit.caret,edit.caret);lines();save();
+}
 $('code').addEventListener('beforeinput',event=>{
+  if(event.inputType==='insertText'&&event.data==='}'&&event.cancelable!==false)return insertClosingBrace(event);
   if(event.inputType==='insertLineBreak'||event.inputType==='insertParagraph')insertNewline(event);
 });
 $('code').addEventListener('keydown', event => {
+  if(event.key==='}'&&!event.ctrlKey&&!event.metaKey&&!event.altKey)return insertClosingBrace(event);
   if(event.key==='Enter')return insertNewline(event);
   if (event.key === 'Tab') {
     event.preventDefault();

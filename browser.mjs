@@ -1,5 +1,5 @@
-import {GitHubClient} from './transport.mjs?v=20261104-isolation1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-isolation1';
+import {GitHubClient} from './transport.mjs?v=20261104-editoricon1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-editoricon1';
 let current;
 function linkState({recovering,message}){
   globalThis.bridgeLinkRecovering=recovering;
@@ -39,7 +39,7 @@ globalThis.bridgeTransport=async(url,options={})=>{
   if(!current)throw Error('请粘贴配对资料连接电脑。');
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权/.test(error.message)){current.close();disconnected(error.message);}else if(/电脑已重启/.test(error.message)){current.nextResume=0;current.resume();}throw error;}
 };
-await import('./app.js?v=20261104-isolation1');
+await import('./app.js?v=20261104-editoricon1');
 const executionButton=document.getElementById('remoteExecution');
 executionButton.addEventListener('click',async()=>{
   const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';

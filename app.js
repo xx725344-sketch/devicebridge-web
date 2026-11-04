@@ -171,6 +171,21 @@ $('download').addEventListener('click', () => {
   const link = document.createElement('a'); link.href = url; link.download = library.items.find(x => x.id === library.active).name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 });
+$('selectAllCode').addEventListener('click',()=>{
+  const editor=$('code');editor.focus();editor.setSelectionRange(0,editor.value.length);lines();
+  toast('已全选当前代码。');
+});
+$('copyCode').addEventListener('click',async()=>{
+  const source=$('code').value;
+  if(!source)return toast('当前还没有代码。');
+  try{
+    if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(source);toast('代码已复制，可以粘贴提交作业。');
+  }catch{
+    const editor=$('code');editor.focus();editor.setSelectionRange(0,source.length);lines();
+    toast('浏览器未允许自动复制，已全选代码，请长按选区选择“复制”。');
+  }
+});
 $('sendToComputer').addEventListener('click',async()=>{
   if(sendingFile||!connected)return;
   const item=library.items.find(x=>x.id===library.active);

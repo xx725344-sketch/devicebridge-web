@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data: blob:; media-src 'self' blob:; base-uri 'none'; form-action 'self'"><meta name="theme-color" content="#302b24">
-  <title>设备桥 · 把电脑的能力带在身边</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=20261104-workspace1">
-  <script src="./editor.js?v=20261104-workspace1" defer></script><script type="module" src="./browser.mjs?v=20261104-workspace1"></script>
+  <title>远程连接 · 私人远程工作空间</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css?v=20261104-remotelink1">
+  <script src="./editor.js?v=20261104-remotelink1" defer></script><script type="module" src="./browser.mjs?v=20261104-remotelink1"></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="./" aria-label="设备桥首页"><img src="./favicon.svg" alt=""><span>设备桥<small>DEVICE BRIDGE</small></span></a>
-    <div class="nav-label">我的工作空间</div>
-    <div class="nav-item active"><span>⌘</span> C 语言工作台 <b>01</b></div>
+    <a class="brand" href="./" aria-label="远程连接首页"><img src="./favicon.svg" alt=""><span>远程连接<small>REMOTE LINK</small></span></a>
+    <div class="nav-label">PRIVATE WORKSPACE</div>
+    <div class="nav-item active"><span>⌘</span> 远程工作台 <b>01</b></div>
     <div class="side-note">在平板上思考，<br>让电脑来运行。</div>
     <div class="device-card"><div class="device-icon">▣</div><div><strong id="deviceName">等待连接</strong><span id="connectionState">等待粘贴配对资料</span></div><i id="connectionDot"></i></div>
-    <div class="side-bottom"><span>陌上云工作台 · v0.10</span><button id="logout" class="text-button" hidden>断开连接 ↗</button></div>
+    <div class="side-bottom"><span>REMOTE LINK · v0.11</span><button id="logout" class="text-button" hidden>断开连接 ↗</button></div>
   </aside>
   <main>
-    <header><div class="breadcrumb">我的设备 <span>/</span> C 语言工作台</div><button id="remoteExecution" class="secondary" type="button" hidden>开启电脑执行</button><span id="remoteNotice" role="status"></span><span id="networkBadge" class="local-badge">● 设备连接</span></header>
-    <section class="intro"><div><div class="eyebrow">A LITTLE CODE. A BIGGER WORLD.</div><h1>你的代码，随处运行<span>。</span></h1><p>用手机或 iPad 写 C，让自己的电脑完成编译和运行。</p></div><div class="intro-mark" aria-hidden="true">{ <span>C</span> }</div></section>
+    <header><div class="breadcrumb">我的设备 <span>/</span> 远程工作台</div><button id="remoteExecution" class="secondary" type="button" hidden>开启电脑执行</button><span id="remoteNotice" role="status"></span><span id="networkBadge" class="local-badge">● 设备连接</span></header>
+    <section class="intro"><div><div class="eyebrow">YOUR PRIVATE CONNECTION</div><h1>连接一台电脑，专注每一次创造<span>。</span></h1><p>一个专属设备，一处安静的工作空间。</p></div><div class="intro-mark" aria-hidden="true">{ <span>C</span> }</div></section>
     <section class="insights-strip" aria-label="本次电脑服务的运行统计"><div><span class="eyebrow">WORKSPACE / 我的练习</span><p id="runSummary" aria-live="polite">连接后显示真实运行统计</p><small id="linkHealth">连接状态以电脑回应为准</small></div><figure><svg id="runChart" viewBox="0 0 310 84" role="img" aria-label="暂无任务耗时数据"></svg><figcaption>最近 12 次耗时 · 金色成功 / 红色其他 · 含编译</figcaption></figure></section><section class="workspace" aria-label="C 代码工作台">
       <div class="editor-panel panel">
         <div class="panel-head"><div class="file-tab"><span class="c-icon">C</span> <span id="fileName">main.c</span> <span id="saved" class="muted">· 正在读取草稿</span></div><button id="sendToComputer" class="text-button" disabled>保存到电脑 ↑</button><button id="download" class="text-button">下载代码 ↓</button></div>

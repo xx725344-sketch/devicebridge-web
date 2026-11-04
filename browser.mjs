@@ -1,5 +1,5 @@
-import {GitHubClient} from './transport.mjs?v=20261104-cloudgold1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-cloudgold1';
+import {GitHubClient} from './transport.mjs?v=20261104-workspace1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-workspace1';
 let current;
 function linkState({recovering,message}){
   globalThis.bridgeLinkRecovering=recovering;
@@ -9,6 +9,14 @@ function linkState({recovering,message}){
 globalThis.addEventListener('online',()=>current?.wake());
 globalThis.addEventListener('pageshow',()=>current?.wake());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)current?.wake();});
+function updateHealth(){
+  const element=document.getElementById('linkHealth');if(!element)return;
+  if(!current?.session){element.textContent='尚未连接电脑 · 草稿保存在当前浏览器';return;}
+  const seconds=Math.max(0,Math.floor((Date.now()-current.lastResponse)/1000));
+  element.textContent=(current.recovering?'正在恢复连接 · ':'')+`电脑最后回应：${seconds} 秒前`+(navigator.onLine===false?' · 浏览器提示网络离线':'');
+}
+setInterval(updateHealth,5000);
+globalThis.addEventListener('offline',updateHealth);
 function disconnected(message){globalThis.dispatchEvent(new CustomEvent('bridge-disconnected',{detail:message}));}
 function executionState(state){
   const button=document.getElementById('remoteExecution');if(!button)return;
@@ -30,7 +38,7 @@ globalThis.bridgeTransport=async(url,options={})=>{
   if(!current)throw Error('请粘贴配对资料连接电脑。');
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权/.test(error.message)){current.close();disconnected(error.message);}else if(/电脑已重启/.test(error.message)){current.nextResume=0;current.resume();}throw error;}
 };
-await import('./app.js?v=20261104-cloudgold1');
+await import('./app.js?v=20261104-workspace1');
 const executionButton=document.getElementById('remoteExecution');
 executionButton.addEventListener('click',async()=>{
   const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';

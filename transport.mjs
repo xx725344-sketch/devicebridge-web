@@ -1,5 +1,5 @@
-import {createKeys,seal,unseal} from './crypto.mjs?v=20261104-cloudgold1';
-import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261104-cloudgold1';
+import {createKeys,seal,unseal} from './crypto.mjs?v=20261104-workspace1';
+import {GitHubMailbox,Assembler} from './mailbox.mjs?v=20261104-workspace1';
 export class GitHubClient{
   constructor(settings,{mailbox,pollMs=6000,onDisconnect=()=>{},onState=()=>{}}={}){this.settings=settings;this.mailbox=mailbox||new GitHubMailbox(settings);this.pollMs=pollMs;this.onDisconnect=onDisconnect;this.onState=onState;this.assembler=new Assembler();this.pending=new Map();this.jobs=new Map();this.closed=false;this.lastResponse=Date.now();}
   async init(){this.keys=await createKeys(this.settings.masterKey);this.clientId=this.settings.clientId||crypto.randomUUID();await this.mailbox.check();void this.poll();return this;}
@@ -59,7 +59,7 @@ export class GitHubClient{
     }catch(error){
       this.lastError=error.message;
       if(/凭据已失效|专用私有仓库或任务收件箱不可访问/.test(error.message)){this.close(error.message);return;}
-      delay=Math.max(15000,this.mailbox.blockedUntil-Date.now());
+      delay=Math.max(15000+Math.floor(Math.random()*5000),this.mailbox.blockedUntil-Date.now());
       if(this.session)this.connection(true, this.mailbox.blockedUntil>Date.now()?'GitHub 暂时限流，等待后自动恢复。':'网络暂时中断，正在等待恢复。');
     }finally{
       this.polling=false;

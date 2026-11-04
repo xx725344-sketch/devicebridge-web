@@ -8,7 +8,7 @@ const samples = {
 };
 const labels = { queued: '等待执行', compiling: '正在编译', running: '正在运行', success: '运行成功', compile_error: '编译失败', runtime_error: '程序异常', timeout: '运行超时', cancelled: '已停止', output_limit: '输出已达上限', error: '执行失败' };
 let connected = false, activeId = null, selectedId = null, pollTimer, toastTimer;
-let polling = false, submitting = false;
+let polling = false, submitting = false, refreshing = false;
 let pendingFinalId = null, fetchingFinal = false;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000); }
 async function api(url, options = {}) {
@@ -82,6 +82,33 @@ function newDocument(source = '', input = '', suggested = '新练习.c') {
 }
 showDocument(); save();
 $('newCode').addEventListener('click', () => newDocument());
+$('duplicateCode').addEventListener('click',()=>newDocument($('code').value,$('stdin').value,library.items.find(x=>x.id===library.active).name.replace(/\.c$/, ' 副本.c')));
+$('findDocument').addEventListener('input',()=>{
+  const term=$('findDocument').value.trim().toLocaleLowerCase();
+  $('documents').replaceChildren(...library.items.filter(x=>x.id===library.active||x.name.toLocaleLowerCase().includes(term)).map(x=>{
+    const option=document.createElement('option');option.value=x.id;option.textContent=x.name;return option;
+  }));
+  $('documents').value=library.active;
+});
+$('focusEditor').addEventListener('click',()=>{
+  const focused=document.body.classList.toggle('editor-focused');
+  $('focusEditor').textContent=focused?'退出专注':'专注编辑';$('focusEditor').setAttribute('aria-pressed',String(focused));
+});
+$('fontSize').addEventListener('change',()=>{
+  const value=Number($('fontSize').value);if(![13,15,17,19].includes(value))return;
+  document.documentElement.style.setProperty('--editor-size',value+'px');
+});
+for(const button of document.querySelectorAll('[data-insert]')){
+  button.addEventListener('pointerdown',event=>event.preventDefault());
+  button.addEventListener('click',()=>{
+    const editor=$('code'),text=button.dataset.insert;
+    const start=editor.selectionStart,end=editor.selectionEnd,selected=editor.value.slice(start,end);
+    const pair=text.length===2&&['{}','()','[]','""'].includes(text);
+    editor.setRangeText(pair?text[0]+selected+text[1]:text,start,end,'end');
+    if(pair)editor.setSelectionRange(start+1,start+1+selected.length);
+    editor.focus();lines();save();
+  });
+}
 $('documents').addEventListener('change', () => {
   const next = $('documents').value;
   if (!save()) { $('documents').value = library.active; return toast('当前代码未保存，请先下载备份。'); }
@@ -180,6 +207,7 @@ function render(job) {
 }
 async function history() {
   const data = await api('/api/jobs');
+  renderInsights(data.jobs);
   $('history').replaceChildren();
   if (!data.jobs.length) { const p = document.createElement('p'); p.className = 'muted'; p.textContent = '还没有运行记录。试试你的第一个函数。'; $('history').append(p); }
   for (const job of data.jobs) {
@@ -192,7 +220,26 @@ async function history() {
     }); $('history').append(row);
   }
 }
+function renderInsights(jobs){
+  const finished=jobs.filter(j=>j.finishedAt);
+  const success=finished.filter(j=>j.status==='success').length;
+  const durations=finished.map(j=>j.duration).filter(n=>Number.isFinite(n)&&n>=0);
+  $('runSummary').textContent=finished.length?`完成 ${finished.length} 次 · 成功 ${success} 次 · 其他 ${finished.length-success} 次 · 平均耗时 ${durations.length?(durations.reduce((a,b)=>a+b,0)/durations.length/1000).toFixed(2):'—'} 秒`:'尚无运行数据。连接电脑并运行代码后，这里会生成统计。';
+  const chart=$('runChart');chart.replaceChildren();
+  const recent=finished.slice(0,12).reverse();
+  chart.setAttribute('aria-label',recent.length?'最近 '+recent.length+' 次任务耗时（含编译），从左到右由旧到新':'暂无任务耗时数据');
+  const maximum=Math.max(1000,...recent.map(j=>Number(j.duration)||0));
+  for(const [i,job] of recent.entries()){
+    const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    const height=Math.max(3,(Number(job.duration)||0)/maximum*64);
+    for(const [key,value] of Object.entries({x:10+i*24,y:76-height,width:15,height,rx:4,fill:job.status==='success'?'#92702e':'#a44c3a'}))bar.setAttribute(key,String(value));
+    const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=`${labels[job.status]||job.status} · ${((Number(job.duration)||0)/1000).toFixed(2)} 秒`;bar.append(title);chart.append(bar);
+  }
+}
 async function refresh() {
+  if(refreshing)return;
+  refreshing=true;
+  try{
   const data = await api('/api/status');
   setConnected(true); $('pairOverlay').hidden = true;
   $('networkBadge').textContent = data.mode === 'github' ? '● GitHub 加密任务 · 有延迟' : data.mode === 'cloud' ? '● 云端中转 · 内容加密' : data.mode === 'tailscale' ? '● 跨网络 · Tailscale' : '● 局域网连接';
@@ -207,6 +254,7 @@ async function refresh() {
   }
   if (activeId) schedulePoll(); buttons();
   await history();
+  }finally{refreshing=false;}
 }
 function schedulePoll() { clearTimeout(pollTimer); pollTimer = setTimeout(poll, globalThis.bridgeTransport ? 2000 : 450); }
 async function poll() {

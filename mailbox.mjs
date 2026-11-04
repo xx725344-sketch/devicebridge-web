@@ -29,6 +29,7 @@ export class Assembler{
 }
 export class GitHubMailbox{
   constructor(settings,{fetcher=globalThis.fetch,base='https://api.github.com',now=()=>Date.now()}={}){
+    if(base!=='https://api.github.com'&&!/^http:\/\/127\.0\.0\.1:\d+$/.test(base))throw Error('拒绝向非 GitHub 地址发送访问凭据。');
     this.settings=validateSettings(settings);this.fetcher=fetcher.bind(globalThis);this.base=base;this.now=now;
     this.path='/repos/'+settings.owner+'/'+settings.repo;this.since=new Date(now()-15000).toISOString();this.lastId=0;this.blockedUntil=0;this.writes=[];this.lastWrite=0;
     this.closed=false;this.controllers=new Set();this.writeTail=Promise.resolve();
@@ -40,14 +41,14 @@ export class GitHubMailbox{
     try{
     const r=await this.fetcher(this.base+this.path+path,{...options,cache:'no-store',redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+this.settings.token,'X-GitHub-Api-Version':'2022-11-28',...(options.body?{'Content-Type':'application/json'}:{})},signal:controller.signal});
     if(!r.ok){
-      let info;try{info=await r.json();}catch{}
+      let info;try{info=await readBoundedJSON(r);}catch{}
       const message=typeof info?.message==='string'?info.message:'';
       const limited=r.status===429||r.status===403&&(r.headers.get('x-ratelimit-remaining')==='0'||r.headers.has('retry-after')||/rate limit|abuse detection/i.test(message));
       if(limited){const delay=Number(r.headers.get('retry-after')||60)*1000;const reset=Number(r.headers.get('x-ratelimit-reset')||0)*1000;this.blockedUntil=Math.max(this.now()+Math.max(Number.isFinite(delay)?delay:60000,60000),r.headers.get('x-ratelimit-remaining')==='0'&&Number.isFinite(reset)?reset:0);throw Error('GitHub 请求已被限流，请等待额度恢复后重试。');}
       if(r.status===403&&message.includes('Resource not accessible by personal access token'))throw Error('令牌权限不足：请编辑现有令牌，将 devicebridge-mailbox 的 Issues 权限设为 Read and write，再保存。');
       throw Error(r.status===401?'GitHub 凭据已失效，请重新配置。':r.status===404?'专用私有仓库或任务收件箱不可访问，请检查授权。':r.status===403?'GitHub 拒绝此操作（403），请检查仓库权限或账号限制。':'GitHub 请求失败（'+r.status+'）。');
     }
-    return r.status===204?null:await r.json();
+    return r.status===204?null:await readBoundedJSON(r);
     }finally{clearTimeout(timer);this.controllers.delete(controller);}
   }
   async check(){
@@ -61,7 +62,7 @@ export class GitHubMailbox{
       const rows=await this.api('/issues/'+this.settings.issue+'/comments?per_page=100&page='+page+'&since='+encodeURIComponent(this.since));
       if(!Array.isArray(rows))throw Error('GitHub 响应格式异常。');all.push(...rows);if(rows.length<100)break;if(page===10)throw Error('消息积压过多，请创建新的专用收件箱。');
     }
-    const fresh=all.filter(row=>row.id>this.lastId).sort((a,b)=>a.id-b.id);
+    const fresh=all.filter(row=>row&&Number.isSafeInteger(row.id)&&row.id>this.lastId&&typeof row.body==='string'&&row.body.length<=50000&&Number.isFinite(Date.parse(row.created_at))).sort((a,b)=>a.id-b.id);
     if(commit)for(const row of fresh)this.ack(row);
     return fresh;
   }
@@ -89,4 +90,14 @@ export class GitHubMailbox{
     }
   }
   close(){this.closed=true;for(const controller of this.controllers)controller.abort();this.controllers.clear();this.settings.token='';}
+}
+
+async function readBoundedJSON(response){
+  // Limit streamed bytes, not just Content-Length, to bound memory for bad responses.
+  const reader=response.body.getReader(),chunks=[];let size=0;
+  try{for(;;){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>8*1024*1024)throw Error('GitHub 响应过大，已停止读取。');chunks.push(value);}}
+  catch(error){await reader.cancel().catch(()=>{});throw error;}
+  finally{reader.releaseLock();}
+  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+  return JSON.parse(new TextDecoder().decode(bytes));
 }

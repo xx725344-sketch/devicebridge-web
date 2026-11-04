@@ -1,5 +1,5 @@
-import {GitHubClient} from './transport.mjs?v=20261104-homescreen1';
-import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-homescreen1';
+import {GitHubClient} from './transport.mjs?v=20261104-security1';
+import {readPairPhoto,readPairPixels} from './scan-qr.mjs?v=20261104-security1';
 let current;
 function linkState({recovering,message}){
   globalThis.bridgeLinkRecovering=recovering;
@@ -30,7 +30,8 @@ globalThis.bridgeTransport=async(url,options={})=>{
     try{settings=JSON.parse(JSON.parse(options.body).code);}catch{throw Error('请粘贴电脑管理页复制的完整配对资料。');}
     let clientId;try{clientId=localStorage.getItem('bridge-github-client-id');}catch{}
     if(!/^[a-f0-9-]{36}$/.test(clientId||'')){clientId=crypto.randomUUID();try{localStorage.setItem('bridge-github-client-id',clientId);}catch{}}
-    current=await new GitHubClient({...settings,clientId},{onDisconnect:disconnected,onState:executionState}).init();
+    current=new GitHubClient({...settings,clientId},{onDisconnect:disconnected,onState:executionState});
+    await current.init();
     current.onConnection=linkState;linkState({recovering:false,message:''});
     try{await current.rpc('hello');return {ok:true};}catch(error){current.close();throw error;}
   }
@@ -38,7 +39,7 @@ globalThis.bridgeTransport=async(url,options={})=>{
   if(!current)throw Error('请粘贴配对资料连接电脑。');
   try{return await current.api(url,options);}catch(error){if(/撤销|未获电脑授权/.test(error.message)){current.close();disconnected(error.message);}else if(/电脑已重启/.test(error.message)){current.nextResume=0;current.resume();}throw error;}
 };
-await import('./app.js?v=20261104-homescreen1');
+await import('./app.js?v=20261104-security1');
 const executionButton=document.getElementById('remoteExecution');
 executionButton.addEventListener('click',async()=>{
   const notice=document.getElementById('remoteNotice');executionButton.disabled=true;notice.textContent='等待电脑回应…';
@@ -81,3 +82,5 @@ live.addEventListener('click',async()=>{
     tick();
   }catch(e){stopCamera();error.textContent=e.name==='NotAllowedError'?'没有获得相机权限，请在 Safari 的当前网站设置中允许相机后重试。':e.message;}
 });
+
+globalThis.bridgeWorkbenchReady=true;

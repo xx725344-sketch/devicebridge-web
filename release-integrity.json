@@ -1,0 +1,25 @@
+{
+  "version": "0.14",
+  "bundler": "esbuild 0.28.2",
+  "files": {
+    ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "QR-LICENSES.txt": "38b4bf78f2c1cccc673ca8e8d5ac8a4b5ad0f643b9e72b7c4f782cbc7a8b1d50",
+    "app.js": "342728241349db7c8eec4277f871a70855d6998262670dee1e1ea6a579d5bb94",
+    "apple-touch-icon.png": "50c8c502a6bdff7c891094d10cba78dfbbc34c74eee803467d4ce96e14a01127",
+    "browser.mjs": "068b027f87bda669883a3a35769ef63a5f9f1f388ea5b522d183fa4e6d615390",
+    "crypto.mjs": "4025957ef5b49b02d044c10e89f35539c756877082c5daa56dd0873278f3e2ef",
+    "editor.js": "dc4c3082910b174c25ca44d1978c00d61822ab857de8ce04203f049b082dac9a",
+    "favicon.svg": "7a93ff0b7073eee7375ab62c56958a04f0b9405697bd2ff659d0e76522dc8718",
+    "icon-192.png": "a9ad56b9fcd7be9443a9bdd79adae8f5e34a47b602715a8579bd8d8e38862eb1",
+    "icon-512.png": "9eb9ab024bf794301c401b1cb26b420e2cb9289b4f913c0a3454366aba198fc1",
+    "index.html": "eb72c8c6f550d530d3ac9a21cc2ddbfb725806e052849e0aeeef93cead9a05d2",
+    "install.js": "efc5fde4dbe1c4b9e566810a8e4033158d5f7def966079ea74cbbcc94cec2835",
+    "mailbox.mjs": "bb5ef606597885251f6c46cdb7c26ba15f0ad6c4d4300a9cbe43abb8a69204b2",
+    "manifest.webmanifest": "487572b62d5df3e5de2ec0a6160ee6026928483db92714c6186b73f406c01957",
+    "scan-qr.mjs": "74540798497415062aae04e2da7d366ec94b856389fbf12a0144475dfdac690c",
+    "style.css": "d59a9054ce356ad85c315ba6d3014e2f7debacc4433895f5a50d8f7fb4b927e9",
+    "transport.mjs": "03db1c2e1095cc6a0c137304a2e6aa680502c43a8661cf3fde6f32383330df1d",
+    "wallpaper.jpg": "ef7659de6a06c09bd65b6c460dbf4c6cb28d749276683e3736aca4deb2c26678",
+    "workbench-9c0ff5b9347ff5b8.mjs": "9c0ff5b9347ff5b85d1c4dcf765bc7b4fc04f768df312825f49ec6e75b8e7ad3"
+  }
+}
